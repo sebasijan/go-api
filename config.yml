@@ -1,0 +1,5 @@
+host:
+  port: 443
+  ssl:
+    cert: C:\Users\sebas\source\SSL-certs\client-1.local.crt
+    key: C:\Users\sebas\source\SSL-certs\client-1.local.key
