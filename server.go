@@ -63,7 +63,7 @@ func (server *Server) getJwtMiddleware() *jwtmiddleware.JWTMiddleware {
 }
 
 func homePage(responseWriter http.ResponseWriter, request *http.Request) {
-	writeJson(responseWriter, "This is the home Page bro")
+	fmt.Fprint(responseWriter, "This is the home Page bro")
 }
 
 func returnAllItems(responseWriter http.ResponseWriter, request *http.Request) {
@@ -78,7 +78,17 @@ func returnSingleItem(responseWriter http.ResponseWriter, request *http.Request)
 		return c.(Item).Id == key
 	}).First()
 
+	if item == nil {
+		writeError(responseWriter, "Item not found")
+		return
+	}
+
 	writeJson(responseWriter, item)
+}
+
+func writeError(responseWriter http.ResponseWriter, message string) {
+	responseWriter.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(responseWriter, message)
 }
 
 func writeJson(responseWriter http.ResponseWriter, input interface{}) {

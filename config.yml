@@ -1,6 +1,6 @@
-Authentication:
-  Jwt:
-    Secret:
+authentication:
+  jwt:
+    secret:
       My Secret
 host:
   port: 443
