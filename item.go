@@ -2,7 +2,7 @@ package main
 
 type Item struct {
 	Id          int    `json:"id"`
-	Title       string `json:"title"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 

@@ -1,3 +1,7 @@
+Authentication:
+  Jwt:
+    Secret:
+      My Secret
 host:
   port: 443
   ssl:

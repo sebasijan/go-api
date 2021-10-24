@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	jwtmiddleware "github.com/auth0/go-jwt-middleware"
+	"github.com/form3tech-oss/jwt-go"
 	"github.com/gorilla/mux"
+	"github.com/urfave/negroni"
 	"gopkg.in/ahmetb/go-linq.v3"
 )
 
@@ -27,38 +30,57 @@ func (server *Server) Run() {
 			fmt.Sprint(":", server.config.Host.Port),
 			server.config.Host.Ssl.Cert,
 			server.config.Host.Ssl.Key,
-			getRouter()))
+			server.getRouter()))
 }
 
-func getRouter() *mux.Router {
+func (server *Server) getRouter() *mux.Router {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
+	jwtMiddleware := server.getJwtMiddleware()
+
 	myRouter.HandleFunc("/", homePage)
-	myRouter.HandleFunc("/articles", returnAllArticles)
-	myRouter.HandleFunc("/articles/{id}", returnSingleArticle)
+	addRouteWithMiddleware("/items", returnAllItems, myRouter, jwtMiddleware.HandlerWithNext)
+	addRouteWithMiddleware("/items/{id}", returnSingleItem, myRouter, jwtMiddleware.HandlerWithNext)
 
 	return myRouter
 }
 
-//
+func addRouteWithMiddleware(path string, function http.HandlerFunc, router *mux.Router, middleware negroni.HandlerFunc) {
+	router.Handle(path, negroni.New(
+		negroni.HandlerFunc(middleware),
+		negroni.Wrap(http.HandlerFunc(function)),
+	))
+}
+
+func (server *Server) getJwtMiddleware() *jwtmiddleware.JWTMiddleware {
+	return jwtmiddleware.New(
+		jwtmiddleware.Options{
+			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+				return []byte(server.config.Authentication.Jwt.Secret), nil
+			},
+			SigningMethod: jwt.SigningMethodHS256,
+		})
+}
 
 func homePage(responseWriter http.ResponseWriter, request *http.Request) {
-	fmt.Fprintln(responseWriter, "This is the home Page bro")
-	fmt.Println("Endpoint hit: homePage")
+	writeJson(responseWriter, "This is the home Page bro")
 }
 
-func returnAllArticles(responseWriter http.ResponseWriter, request *http.Request) {
-	fmt.Println("Endpoint hit: returnAllArticles")
-	json.NewEncoder(responseWriter).Encode(Items)
+func returnAllItems(responseWriter http.ResponseWriter, request *http.Request) {
+	writeJson(responseWriter, Items)
 }
 
-func returnSingleArticle(responseWriter http.ResponseWriter, request *http.Request) {
+func returnSingleItem(responseWriter http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	key, _ := strconv.Atoi(vars["id"])
 
-	article := linq.From(Items).Where(func(c interface{}) bool {
+	item := linq.From(Items).Where(func(c interface{}) bool {
 		return c.(Item).Id == key
 	}).First()
 
-	fmt.Fprintf(responseWriter, "\t%+v\n", article)
+	writeJson(responseWriter, item)
+}
+
+func writeJson(responseWriter http.ResponseWriter, input interface{}) {
+	json.NewEncoder(responseWriter).Encode(input)
 }

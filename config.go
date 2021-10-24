@@ -8,6 +8,11 @@ import (
 )
 
 type Config struct {
+	Authentication struct {
+		Jwt struct {
+			Secret string `yamls:"secret"`
+		}
+	}
 	Host struct {
 		Ssl struct {
 			Cert string `yaml:"cert"`
@@ -26,13 +31,10 @@ func NewConfig() *Config {
 	defer file.Close()
 
 	var config Config
-	decoder := yaml.NewDecoder(file)
-	error = decoder.Decode(&config)
+	error = yaml.NewDecoder(file).Decode(&config)
 	if error != nil {
 		log.Fatal(error)
 	}
-
-	PrintObject(config)
 
 	return &config
 }
