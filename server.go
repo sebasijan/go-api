@@ -40,6 +40,8 @@ func getRouter() *mux.Router {
 	return myRouter
 }
 
+//
+
 func homePage(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Fprintln(responseWriter, "This is the home Page bro")
 	fmt.Println("Endpoint hit: homePage")

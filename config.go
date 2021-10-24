@@ -32,7 +32,7 @@ func NewConfig() *Config {
 		log.Fatal(error)
 	}
 
-	PrintObject(&config)
+	PrintObject(config)
 
 	return &config
 }

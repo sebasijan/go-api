@@ -1,7 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
-func PrintObject(object interface{}) {
-	fmt.Printf("\t%+v\n", object)
+func PrintObject(input interface{}) {
+	fmt.Print(getMarshalIndent(input))
+}
+
+func getMarshalIndent(input interface{}) string {
+	s, _ := json.MarshalIndent(input, "", "\t")
+	return string(s)
 }
