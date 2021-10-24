@@ -1,11 +1,7 @@
-# go-api
+## How to run the project
 
-# ssl
+`$ go run .`
 
-Run below to generate ssl cert and key
+## ssl
 
-    openssl genrsa -out go-api.key 2048
-    openssl ecparam -genkey -name secp384r1 -out go-api.key
-    openssl req -new -x509 -sha256 -key go-api.key -out go-api.crt -days 3650
-
-Copy paths to config.json
+Follow [this guide](https://zeropointdevelopment.com/how-to-get-https-working-in-windows-10-localhost-dev-environment/) to generate cert/key for localhost
