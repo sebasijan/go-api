@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	jwtmiddleware "github.com/auth0/go-jwt-middleware"
-	"github.com/form3tech-oss/jwt-go"
+	"github.com/ahmetb/go-linq/v3"
+	jwt "github.com/appleboy/gin-jwt/v2"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
-	"gopkg.in/ahmetb/go-linq.v3"
 )
 
 type Server struct {
@@ -24,23 +24,52 @@ func NewServer(config *Config) *Server {
 	}
 }
 
+func helloHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	user, _ := c.Get(identityKey)
+	c.JSON(200, gin.H{
+		"userID":   claims[identityKey],
+		"userName": user.(*User).UserName,
+		"text":     "Hello World.",
+	})
+}
+
 func (server *Server) Run() {
+	ginRouter := gin.Default()
+	ginRouter.GET("/", homePage)
+
+	authMiddleware := getJwtMiddleware()
+
+	ginRouter.POST("/login", authMiddleware.LoginHandler)
+
+	ginRouter.NoRoute(authMiddleware.MiddlewareFunc(), func(c *gin.Context) {
+		claims := jwt.ExtractClaims(c)
+		log.Printf("NoRoute claims: %#v\n", claims)
+		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+	})
+
+	auth := ginRouter.Group("/auth")
+	auth.GET("/refresh_token", authMiddleware.RefreshHandler)
+	auth.Use(authMiddleware.MiddlewareFunc())
+	{
+		auth.GET("/hello", helloHandler)
+	}
+
 	log.Fatal(
-		http.ListenAndServeTLS(
+		ginRouter.RunTLS(
 			fmt.Sprint(":", server.config.Host.Port),
 			server.config.Host.Ssl.Cert,
-			server.config.Host.Ssl.Key,
-			server.getRouter()))
+			server.config.Host.Ssl.Key))
 }
 
 func (server *Server) getRouter() *mux.Router {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
-	jwtMiddleware := server.getJwtMiddleware()
+	// jwtMiddleware := server.getJwtMiddleware()
 
-	myRouter.HandleFunc("/", homePage)
-	addRouteWithMiddleware("/items", returnAllItems, myRouter, jwtMiddleware.HandlerWithNext)
-	addRouteWithMiddleware("/items/{id}", returnSingleItem, myRouter, jwtMiddleware.HandlerWithNext)
+	// myRouter.HandleFunc("/", homePage)
+	// addRouteWithMiddleware("/items", returnAllItems, myRouter, jwtMiddleware.HandlerWithNext)
+	// addRouteWithMiddleware("/items/{id}", returnSingleItem, myRouter, jwtMiddleware.HandlerWithNext)
 
 	return myRouter
 }
@@ -52,18 +81,18 @@ func addRouteWithMiddleware(path string, function http.HandlerFunc, router *mux.
 	))
 }
 
-func (server *Server) getJwtMiddleware() *jwtmiddleware.JWTMiddleware {
-	return jwtmiddleware.New(
-		jwtmiddleware.Options{
-			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
-				return []byte(server.config.Authentication.Jwt.Secret), nil
-			},
-			SigningMethod: jwt.SigningMethodHS256,
-		})
-}
+// func (server *Server) getJwtMiddleware() *jwtmiddleware.JWTMiddleware {
+// 	return jwtmiddleware.New(
+// 		jwtmiddleware.Options{
+// 			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+// 				return []byte(server.config.Authentication.Jwt.Secret), nil
+// 			},
+// 			SigningMethod: jwt.SigningMethodHS256,
+// 		})
+// }
 
-func homePage(responseWriter http.ResponseWriter, request *http.Request) {
-	fmt.Fprint(responseWriter, "This is the home Page bro")
+func homePage(context *gin.Context) {
+	context.String(http.StatusOK, "Hello from Gin")
 }
 
 func returnAllItems(responseWriter http.ResponseWriter, request *http.Request) {

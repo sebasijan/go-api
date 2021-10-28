@@ -3,7 +3,7 @@ authentication:
     secret:
       My Secret
 host:
-  port: 443
+  port: 5000
   ssl:
-    cert: C:\Users\sebas\source\SSL-certs\client-1.local.crt
-    key: C:\Users\sebas\source\SSL-certs\client-1.local.key
+    cert: /home/bassie/Work/ssl-cert/mintserver1/mintserver1.crt
+    key: /home/bassie/Work/ssl-cert/mintserver1/mintserver1.key
