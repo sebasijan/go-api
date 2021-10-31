@@ -1,0 +1,9 @@
+authentication:
+  jwt:
+    secret:
+      My Secret
+host:
+  port: 5000
+  ssl:
+    cert: /home/bassie/Work/ssl-cert/from-mkcert/localhost.pem
+    key: /home/bassie/Work/ssl-cert/from-mkcert/localhost-key.pem

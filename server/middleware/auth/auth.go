@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"log"
@@ -8,18 +8,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const identityKey = "id"
+const IdentityKey = "id"
 
-type login struct {
-	Username string `form:"username" json:"username" binding:"required"`
-	Password string `form:"password" json:"password" binding:"required"`
-}
+// // Use adds middleware to the group, see example code in GitHub.
+// func (group *RouterGroup) Use(middleware ...HandlerFunc) IRoutes {
+// 	group.Handlers = append(group.Handlers, middleware...)
+// 	return group.returnObj()
+// }
 
-// User demo
-type User struct {
-	UserName  string
-	FirstName string
-	LastName  string
+func UseJWTMiddleware(router *gin.Engine, path string, authRoutes func(r *gin.RouterGroup)) {
+	authMiddleware := GetJwtMiddleware()
+
+	api := router.Group("/api")
+	api.POST("/login", authMiddleware.LoginHandler)
+
+	authRouter := api.Group(path)
+	authRouter.Use(authMiddleware.MiddlewareFunc())
+	{
+		authRouter.GET("/refresh_token", authMiddleware.RefreshHandler)
+		authRoutes(authRouter)
+	}
 }
 
 type GinJWTAuthenticationOptions struct {
@@ -29,7 +37,7 @@ type GinJWTAuthenticationOptions struct {
 func getDefaultGinJWTOptions() GinJWTAuthenticationOptions {
 	return GinJWTAuthenticationOptions{
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			var loginVals login
+			var loginVals Login
 			if err := c.ShouldBind(&loginVals); err != nil {
 				return "", jwt.ErrMissingLoginValues
 			}
@@ -49,7 +57,7 @@ func getDefaultGinJWTOptions() GinJWTAuthenticationOptions {
 	}
 }
 
-func getJwtMiddleware() *jwt.GinJWTMiddleware {
+func GetJwtMiddleware() *jwt.GinJWTMiddleware {
 	options := getDefaultGinJWTOptions()
 
 	authMiddleware, error := jwt.New(&jwt.GinJWTMiddleware{
@@ -57,11 +65,11 @@ func getJwtMiddleware() *jwt.GinJWTMiddleware {
 		Key:         []byte("secret key"),
 		Timeout:     time.Hour,
 		MaxRefresh:  time.Hour,
-		IdentityKey: identityKey,
+		IdentityKey: IdentityKey,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if v, ok := data.(*User); ok {
 				return jwt.MapClaims{
-					identityKey: v.UserName,
+					IdentityKey: v.UserName,
 				}
 			}
 			return jwt.MapClaims{}
@@ -69,7 +77,7 @@ func getJwtMiddleware() *jwt.GinJWTMiddleware {
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
 			return &User{
-				UserName: claims[identityKey].(string),
+				UserName: claims[IdentityKey].(string),
 			}
 		},
 		Authenticator: options.Authenticator,
